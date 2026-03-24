@@ -22,7 +22,7 @@ npm install @echecs/round-robin
 ## Quick Start
 
 ```typescript
-import { roundRobin, schedule } from '@echecs/round-robin';
+import { pair } from '@echecs/round-robin';
 import type { Player } from '@echecs/round-robin';
 
 const players: Player[] = [
@@ -32,39 +32,44 @@ const players: Player[] = [
   { id: 'dave' },
 ];
 
-// Get pairings for round 1
-const round1 = roundRobin(players, [], 1);
+// Get pairings for round 1 (no previous games)
+const round1 = pair(players, []);
 console.log(round1.pairings);
 // [{ whiteId: 'alice', blackId: 'dave' }, { whiteId: 'bob', blackId: 'carol' }]
 
-// Get the full schedule (all rounds at once)
-const allRounds = schedule(players);
-console.log(allRounds.length); // 3
+// After recording round-1 results, pair round 2
+// games[n] = round n+1; Game has no `round` field
+const games = [
+  [
+    { whiteId: 'alice', blackId: 'dave', result: 1 },
+    { whiteId: 'bob', blackId: 'carol', result: 0.5 },
+  ],
+];
+const round2 = pair(players, games); // next round = games.length + 1 = 2
 ```
 
 ## API
 
-### `roundRobin()`
+### `pair(players, games)`
 
 ```typescript
-function roundRobin(
-  players: Player[],
-  games: Game[],
-  round: number,
-): PairingResult;
+function pair(players: Player[], games: Game[][]): PairingResult;
 ```
 
-Returns pairings for a specific round number.
+Returns pairings for the next round.
 
 - `players` — all registered players, ordered by seed (index 0 = seed 1)
-- `games` — accepted for interface compatibility with
-  [`@echecs/swiss`](https://www.npmjs.com/package/@echecs/swiss); ignored
-- `round` — the round number to generate pairings for (1-based)
+- `games` — completed games grouped by round: `games[0]` = round 1, `games[1]` =
+  round 2, … The round to pair is `games.length + 1`. The `games` parameter is
+  accepted for interface compatibility with `@echecs/swiss` but is ignored —
+  pairings are fully determined by seeding order and round index.
+
+The `Game` type has no `round` field — round is encoded by array position.
 
 Throws `RangeError` if:
 
 - Fewer than 3 or more than 16 players
-- `round` is less than 1 or greater than the total number of rounds
+- `games.length + 1` exceeds the total number of rounds
 
 ```typescript
 interface PairingResult {
@@ -81,17 +86,6 @@ interface Bye {
   playerId: string;
 }
 ```
-
-### `schedule()`
-
-```typescript
-function schedule(players: Player[]): PairingResult[];
-```
-
-Returns the complete schedule — one `PairingResult` per round. Equivalent to
-calling `roundRobin()` for every round.
-
-Throws `RangeError` if fewer than 3 or more than 16 players.
 
 ### Number of rounds
 
@@ -117,7 +111,7 @@ calling the pairing function.
 ```typescript
 // Seed by rating (highest first)
 const seeded = players.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-const round1 = roundRobin(seeded, [], 1);
+const round1 = pair(seeded, []);
 ```
 
 ## Byes
@@ -129,7 +123,7 @@ gets the bye.
 ```typescript
 const players: Player[] = [{ id: 'alice' }, { id: 'bob' }, { id: 'carol' }];
 
-const round1 = roundRobin(players, [], 1);
+const round1 = pair(players, []);
 console.log(round1.byes);
 // [{ playerId: 'alice' }]
 console.log(round1.pairings);
@@ -138,35 +132,26 @@ console.log(round1.pairings);
 
 ## Unified Pairing Interface
 
-The `roundRobin` function shares the same signature as Swiss pairing functions
-in `@echecs/swiss`:
+The `pair` function shares the same signature as Swiss pairing functions in
+`@echecs/swiss`:
 
 ```typescript
-type PairingSystem = (
-  players: Player[],
-  games: Game[],
-  round: number,
-) => PairingResult;
+type PairingSystem = (players: Player[], games: Game[][]) => PairingResult;
 ```
 
-This enables a future `@echecs/tournament` package to consume any pairing system
-through a single interface. The `games` parameter is accepted but ignored —
-round-robin pairings are fully determined by seeding order and round number.
+This enables `@echecs/tournament` to consume any pairing system through a single
+interface. The `games` parameter is accepted but ignored.
 
 ```typescript
-import { dutch } from '@echecs/swiss';
-import { roundRobin } from '@echecs/round-robin';
+import { pair as dutch } from '@echecs/swiss';
+import { pair as roundRobin } from '@echecs/round-robin';
 import type { PairingResult, Player, Game } from '@echecs/round-robin';
 
-type PairingSystem = (
-  players: Player[],
-  games: Game[],
-  round: number,
-) => PairingResult;
+type PairingSystem = (players: Player[], games: Game[][]) => PairingResult;
 
 // Both work as a PairingSystem
 const system: PairingSystem = useSwiss ? dutch : roundRobin;
-const pairings = system(players, games, round);
+const pairings = system(players, games);
 ```
 
 ## Types
@@ -180,8 +165,8 @@ interface Player {
 interface Game {
   blackId: string;
   result: Result;
-  round: number;
   whiteId: string;
+  // No `round` field — round is encoded by position in Game[][]
 }
 
 type Result = 0 | 0.5 | 1;

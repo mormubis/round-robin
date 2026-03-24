@@ -12,8 +12,20 @@ TypeScript settings, formatting, naming, testing, ESLint rules).
 
 Pure lookup library, no runtime dependencies. Generates round-robin pairings
 from hardcoded FIDE Berger tables for 3-16 players. Exports one pairing function
-(`roundRobin`), one convenience function (`schedule`), and shared types
-compatible with `@echecs/swiss`.
+(`pair`) and shared types compatible with `@echecs/swiss`.
+
+The `pair` function signature:
+
+```ts
+pair(players: Player[], games: Game[][]): PairingResult;
+```
+
+`Game[][]` is a round-indexed structure: `games[0]` contains round-1 games,
+`games[1]` contains round-2 games, and so on. The `Game` type no longer has a
+`round` field — round is determined by array position. The round to pair is
+`games.length + 1`. The `games` parameter is accepted for interface
+compatibility with `@echecs/swiss` but is ignored — round-robin pairings are
+fully determined by seeding order and round index.
 
 ---
 
@@ -75,28 +87,25 @@ pnpm lint && pnpm test && pnpm build
 - Supports 3-16 players. This is a hard constraint matching the FIDE spec.
 - Odd player counts are padded to the next even number; the highest seat becomes
   the bye seat.
+- Round is structural: `games[n]` = round n+1. The `Game` type has no `round`
+  field. The round to pair is `games.length + 1`.
 - All interface fields sorted alphabetically (`sort-keys` is an ESLint error).
 - Always use `.js` extensions on relative imports (NodeNext resolution).
-- The `roundRobin()` function accepts a `games` parameter for interface
-  compatibility with `@echecs/swiss` pairing functions but ignores it.
+- The `pair()` function accepts a `games` parameter for interface compatibility
+  with `@echecs/swiss` pairing functions but ignores it.
 
 ---
 
 ## Unified Pairing Interface
 
-The `roundRobin` function conforms to the same signature as Swiss pairing
-functions:
+The `pair` function conforms to the same signature as Swiss pairing functions:
 
 ```typescript
-type PairingSystem = (
-  players: Player[],
-  games: Game[],
-  round: number,
-) => PairingResult;
+type PairingSystem = (players: Player[], games: Game[][]) => PairingResult;
 ```
 
-This enables a future `@echecs/tournament` package to consume any pairing system
-through a single interface.
+This enables `@echecs/tournament` to consume any pairing system through a single
+interface.
 
 ---
 
