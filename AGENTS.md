@@ -4,7 +4,10 @@ Agent guidance for the `@echecs/round-robin` package — round-robin tournament
 pairings using FIDE Berger tables (C.05 Annex 1).
 
 See the root `AGENTS.md` for workspace-wide conventions (package manager,
-TypeScript settings, formatting, naming, testing, ESLint rules).
+
+**Backlog:** tracked in
+[GitHub Issues](https://github.com/mormubis/round-robin/issues). TypeScript
+settings, formatting, naming, testing, ESLint rules).
 
 ---
 
