@@ -3,6 +3,8 @@
 Agent guidance for the `@echecs/round-robin` package — round-robin tournament
 pairings using FIDE Berger tables (C.05 Annex 1).
 
+**See also:** [`REFERENCES.md`](REFERENCES.md) | [`SPEC.md`](SPEC.md)
+
 See the root `AGENTS.md` for workspace-wide conventions (package manager,
 
 **Backlog:** tracked in
